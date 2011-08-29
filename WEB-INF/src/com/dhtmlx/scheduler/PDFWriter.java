@@ -11,7 +11,7 @@ import org.xml.sax.SAXException;
 
 import com.pdfjet.*;
 
-public class PDFWriter{
+public class PDFWriter {
 	private XMLParser parser;
 	private PDF pdf;
 	private Font f1;
@@ -37,9 +37,9 @@ public class PDFWriter{
 	private double weekEventHeaderHeight = 10;
 	private double agendaColOneWidth = 200;
 	private double multidayLineHeight = 14;
-	
+
 	private String linePattern = "0";
-	
+
 	private String pageNumTemplate = "Page {pageNum}/{allNum}";
 	private String pathToImgs = "d:/java/workspace/scheduler2pdf/imgs";
 	private double headerImgHeight = 100;
@@ -47,12 +47,12 @@ public class PDFWriter{
 
 	private double monthDayWidth;
 	private double monthDayHeight;
-	
+
 	private double weekDayWidth;
 	private double weekDayHeight;
 	private double headerHeight;
 	private double multiHeight = 0;
-	
+
 	private String profile = "color";
 
 	private double cellOffset = 3;
@@ -60,8 +60,9 @@ public class PDFWriter{
 	private String bgColor = "C2D5FC";
 	private String lineColor = "586A7E";
 	private String headerLineColor = "FFFFFF";
-	
+
 	private String dayHeaderColor = "EBEFF4";
+	private String watermarkTextColor;
 	private String dayBodyColor = "FFFFFF";
 	private String dayHeaderColorInactive = "E2E3E6";
 	private String dayBodyColorInactive = "ECECEC";
@@ -76,8 +77,10 @@ public class PDFWriter{
 	private String multidayColor = "E1E6FF";
 	private String matrixEventColor = "FFFFFF";
 	private String view;
-	
-	public void generate(String xml,HttpServletResponse resp) throws IOException {
+	public String watermark = null;
+
+	public void generate(String xml, HttpServletResponse resp)
+			throws IOException {
 		this.parser = new XMLParser();
 		this.headerHeight = this.headHeight;
 
@@ -110,7 +113,6 @@ public class PDFWriter{
 			this.todayLabelDraw();
 			this.outputPDF(resp);
 
-
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (DOMException e) {
@@ -126,7 +128,6 @@ public class PDFWriter{
 		}
 	}
 
-	
 	private void printMonth() throws Exception {
 		this.createPDF(Letter.LANDSCAPE);
 		this.printHeader();
@@ -134,15 +135,16 @@ public class PDFWriter{
 		this.monthHeaderDraw();
 		this.monthContainerDraw();
 		this.monthEventsDraw();
+		this.printWatermark();
 	}
-	
+
 	private void printYear() throws Exception {
 		this.createPDF(Letter.LANDSCAPE);
 		this.printHeader();
 		this.printFooter();
 		this.yearDraw();
 	}
-	
+
 	private void printAgenda() throws Exception {
 		this.createPDF(Letter.PORTRAIT);
 		this.printHeader();
@@ -151,7 +153,7 @@ public class PDFWriter{
 		this.agendaEventDraw();
 		this.agendaPagesDraw();
 	}
-	
+
 	private void printTimeline() throws Exception {
 		this.leftScaleWidth = this.timelineLeft;
 		this.createPDF(Letter.LANDSCAPE);
@@ -161,7 +163,7 @@ public class PDFWriter{
 		this.timelineContainerDraw();
 		this.timelineEventsDraw();
 	}
-	
+
 	private void printMatrix() throws Exception {
 		this.leftScaleWidth = this.timelineLeft;
 		this.createPDF(Letter.LANDSCAPE);
@@ -170,7 +172,7 @@ public class PDFWriter{
 		this.weekHeaderDraw();
 		this.matrixContainerDraw();
 	}
-	
+
 	private void printWeek() throws Exception {
 		this.createPDF(Letter.PORTRAIT);
 		this.printHeader();
@@ -181,6 +183,18 @@ public class PDFWriter{
 		this.weekEventsDraw();
 		if (this.profile.compareTo("bw") == 0)
 			this.weekBwBordersDraw();
+	}
+
+	private void printWatermark() throws Exception {
+		if (watermark == null) return;
+		
+		f1.setSize(10);
+		TextLine text = new TextLine(f1, watermark);
+		text.setColor(RGBColor.getColor(watermarkTextColor));
+		double x = offsetLeft;
+		double y = pageHeight + offsetTop + f1.getSize();
+		text.setPosition(x, y);
+		text.drawOn(page);
 	}
 	
 	private void createPDF(double[] orientation) throws Exception {
@@ -196,12 +210,12 @@ public class PDFWriter{
 		this.pageWidth = sizes[0] - this.offsetLeft - this.offsetRight;
 		this.pageHeight = sizes[1] - this.offsetTop - this.offsetBottom;
 	}
-	
+
 	private void monthHeaderDraw() throws Exception {
 		double[] bgColor = RGBColor.getColor(this.bgColor);
 		double[] borderColor = RGBColor.getColor(this.headerLineColor);
 		String[] cols = this.parser.monthColsParsing();
-		double width = this.pageWidth/cols.length;
+		double width = this.pageWidth / cols.length;
 		double height = this.headerHeight;
 		double x = this.offsetLeft;
 		double y = this.offsetTop;
@@ -223,9 +237,10 @@ public class PDFWriter{
 				borderLeft.drawOn(this.page);
 			}
 
-			TextLine text = new TextLine(this.f1, this.textWrap(cols[i], width - 2*this.cellOffset, this.f1));
-			double text_x = (width - this.f1.stringWidth(text.getText()))/2;
-			double text_y = (height + this.f1.getSize())/2;
+			TextLine text = new TextLine(this.f1, this.textWrap(cols[i], width
+					- 2 * this.cellOffset, this.f1));
+			double text_x = (width - this.f1.stringWidth(text.getText())) / 2;
+			double text_y = (height + this.f1.getSize()) / 2;
 			text.setPosition(text_x, text_y);
 			text.placeIn(cell);
 			text.drawOn(this.page);
@@ -233,18 +248,20 @@ public class PDFWriter{
 			x += width;
 		}
 	}
-	
+
 	private void monthContainerDraw() throws Exception {
 		double[] borderColor = RGBColor.getColor(this.lineColor);
 		double[] dayHeaderColor = RGBColor.getColor(this.dayHeaderColor);
 		double[] dayBodyColor = RGBColor.getColor(this.dayBodyColor);
-		double[] dayHeaderColorInactive = RGBColor.getColor(this.dayHeaderColorInactive);
-		double[] dayBodyColorInactive = RGBColor.getColor(this.dayBodyColorInactive);
+		double[] dayHeaderColorInactive = RGBColor
+				.getColor(this.dayHeaderColorInactive);
+		double[] dayBodyColorInactive = RGBColor
+				.getColor(this.dayBodyColorInactive);
 		String[][] rows = this.parser.monthRowsParsing();
-		double width = this.pageWidth/7;
-		double height = (this.pageHeight - this.headerHeight)/rows.length;
+		double width = this.pageWidth / 7;
+		double height = (this.pageHeight - this.headerHeight) / rows.length;
 		this.monthDayWidth = width;
-		this.monthDayHeight = height; 
+		this.monthDayHeight = height;
 		double x = this.offsetLeft;
 		double y = this.offsetTop + this.headerHeight;
 		for (int i = 0; i < rows.length; i++) {
@@ -272,14 +289,14 @@ public class PDFWriter{
 				} else {
 					cellIn.setColor(dayHeaderColorInactive);
 				}
-				
+
 				Line borderLeft = new Line();
 				borderLeft.setColor(borderColor);
 				borderLeft.setPattern(this.linePattern);
 				borderLeft.setStartPoint(0, 0);
 				borderLeft.setEndPoint(0, height);
 				borderLeft.placeIn(cell);
-				
+
 				Line borderTop = new Line();
 				borderTop.setColor(borderColor);
 				borderTop.setPattern(this.linePattern);
@@ -289,13 +306,14 @@ public class PDFWriter{
 
 				cell.drawOn(this.page);
 				cellIn.drawOn(this.page);
-				
+
 				x += width;
-				
+
 				TextLine text = new TextLine(this.f1, rows[i][j]);
 				this.f1.setSize(9);
-				double text_x = width - this.f1.stringWidth(text.getText()) - this.cellOffset;
-				double text_y = (this.monthDayHeaderHeight + this.f1.getSize())/2;
+				double text_x = width - this.f1.stringWidth(text.getText())
+						- this.cellOffset;
+				double text_y = (this.monthDayHeaderHeight + this.f1.getSize()) / 2;
 				text.setPosition(text_x, text_y);
 				text.placeIn(cellIn);
 				text.drawOn(this.page);
@@ -307,18 +325,21 @@ public class PDFWriter{
 		Line borderRight = new Line();
 		borderRight.setColor(borderColor);
 		borderRight.setPattern(this.linePattern);
-		borderRight.setStartPoint(this.offsetLeft + this.pageWidth, this.offsetTop);
-		borderRight.setEndPoint(this.offsetLeft + this.pageWidth, this.offsetTop + this.pageHeight);
+		borderRight.setStartPoint(this.offsetLeft + this.pageWidth,
+				this.offsetTop);
+		borderRight.setEndPoint(this.offsetLeft + this.pageWidth,
+				this.offsetTop + this.pageHeight);
 		borderRight.drawOn(this.page);
 		Line borderBottom = new Line();
 		borderBottom.setColor(borderColor);
 		borderBottom.setPattern(this.linePattern);
-		borderBottom.setStartPoint(this.offsetLeft, this.offsetTop + this.pageHeight);
-		borderBottom.setEndPoint(this.offsetLeft + this.pageWidth, this.offsetTop + this.pageHeight);
+		borderBottom.setStartPoint(this.offsetLeft, this.offsetTop
+				+ this.pageHeight);
+		borderBottom.setEndPoint(this.offsetLeft + this.pageWidth,
+				this.offsetTop + this.pageHeight);
 		borderBottom.drawOn(this.page);
 	}
-	
-	
+
 	private void monthEventsDraw() throws Exception {
 		double[] eventColor = RGBColor.getColor(this.eventColor);
 		double[] eventBorderColor = RGBColor.getColor(this.eventBorderColor);
@@ -337,18 +358,20 @@ public class PDFWriter{
 			int day = events[i].getDay();
 			int week = events[i].getWeek() - 1;
 
-			double width = (events[i].getWidth()*this.monthDayWidth)/100;
+			double width = (events[i].getWidth() * this.monthDayWidth) / 100;
 			String type = events[i].getType();
 			String bgColor = events[i].getBackgroundColor();
 			String color = events[i].getColor();
 			if (type.compareTo("event_line") == 0) {
 				Box cell = new Box();
-				double cell_x = this.offsetLeft + day*this.monthDayWidth + this.monthEventOffsetLeft;
+				double cell_x = this.offsetLeft + day * this.monthDayWidth
+						+ this.monthEventOffsetLeft;
 				double cell_y = this.offsetTop;
 				cell_y += this.headerHeight;
-				cell_y += week*this.monthDayHeight;
+				cell_y += week * this.monthDayHeight;
 				cell_y += this.monthDayHeaderHeight;
-				cell_y += events_grid[week][day]*(this.monthEventHeight + this.monthEventOffsetTop);
+				cell_y += events_grid[week][day]
+						* (this.monthEventHeight + this.monthEventOffsetTop);
 				cell_y += this.monthEventOffsetTop;
 				double height = this.monthEventHeight;
 				cell.setSize(width, height);
@@ -360,26 +383,31 @@ public class PDFWriter{
 				cellIn.setSize(width, height);
 				cellIn.placeIn(cell, 0, 0);
 				cellIn.setFillShape(true);
-				if ((bgColor.compareTo("transparent") != 0)&&((this.profile.compareTo("fullcolor") == 0)||(this.profile.compareTo("color") == 0))) {
+				if ((bgColor.compareTo("transparent") != 0)
+						&& ((this.profile.compareTo("fullcolor") == 0) || (this.profile
+								.compareTo("color") == 0))) {
 					cellIn.setColor(RGBColor.getColor(bgColor));
 				} else {
 					cellIn.setColor(eventColor);
 				}
 
-				this.f1.setSize(7.4);
-				TextLine text = new TextLine(this.f1, this.textWrap(event_text, width - 2*this.cellOffset, this.f1));
+				this.f1.setSize(8);
+				TextLine text = new TextLine(this.f1, this.textWrap(event_text,
+						width - 2 * this.cellOffset, this.f1));
 				double text_x = this.cellOffset;
-				double text_y = (height + this.f1.getSize())/2;
+				double text_y = (height + this.f1.getSize()) / 2;
 				text.setPosition(text_x, text_y);
 				text.placeIn(cellIn);
-				if ((color.compareTo("transparent") != 0)&&((this.profile.compareTo("fullcolor") == 0)||(this.profile.compareTo("color") == 0))) {
+				if ((color.compareTo("transparent") != 0)
+						&& ((this.profile.compareTo("fullcolor") == 0) || (this.profile
+								.compareTo("color") == 0))) {
 					text.setColor(RGBColor.getColor(color));
 				} else {
 					text.setColor(textColor);
 				}
 
-
-				if ((cell_y + height) >= (this.offsetTop + this.headerHeight + (week + 1)*this.monthDayHeight)) {
+				if ((cell_y + height) >= (this.offsetTop + this.headerHeight + (week + 1)
+						* this.monthDayHeight)) {
 					int event_footenote = getFootenoteExists(events, week, day);
 					if (event_footenote > 0) {
 						events[i].setFootenote(event_footenote);
@@ -393,30 +421,36 @@ public class PDFWriter{
 					text.drawOn(this.page);
 				}
 				events_grid[week][day]++;
-				int event_length = (int) Math.floor(width/this.monthDayWidth);
+				int event_length = (int) Math.floor(width / this.monthDayWidth);
 				for (int j = 1; j <= event_length; j++) {
 					events_grid[week][day + j]++;
 				}
 			} else {
-				double cell_x = this.offsetLeft + day*this.monthDayWidth + this.monthEventOffsetLeft;
+				double cell_x = this.offsetLeft + day * this.monthDayWidth
+						+ this.monthEventOffsetLeft;
 				double cell_y = this.offsetTop;
 				cell_y += this.headerHeight;
-				cell_y += week*this.monthDayHeight;
+				cell_y += week * this.monthDayHeight;
 				cell_y += this.monthDayHeaderHeight;
-				cell_y += events_grid[week][day]*(this.monthEventHeight + this.monthEventOffsetTop);
+				cell_y += events_grid[week][day]
+						* (this.monthEventHeight + this.monthEventOffsetTop);
 				cell_y += this.monthEventOffsetTop;
 				double height = this.monthEventHeight;
-				this.f1.setSize(7.4);
-				TextLine text = new TextLine(this.f1, this.textWrap(event_text, width - 2*this.cellOffset, this.f1));
-				if ((color.compareTo("transparent") != 0)&&((this.profile.compareTo("fullcolor") == 0)||(this.profile.compareTo("color") == 0))) {
+				this.f1.setSize(8);
+				TextLine text = new TextLine(this.f1, this.textWrap(event_text,
+						width - 2 * this.cellOffset, this.f1));
+				if ((color.compareTo("transparent") != 0)
+						&& ((this.profile.compareTo("fullcolor") == 0) || (this.profile
+								.compareTo("color") == 0))) {
 					text.setColor(RGBColor.getColor(color));
 				} else {
 					text.setColor(textColor);
 				}
 				double text_x = cell_x + this.cellOffset;
-				double text_y = cell_y + (height + this.f1.getSize())/2;
+				double text_y = cell_y + (height + this.f1.getSize()) / 2;
 				text.setPosition(text_x, text_y);
-				if ((cell_y + height) >= (this.offsetTop + this.headerHeight + (week + 1)*this.monthDayHeight)) {
+				if ((cell_y + height) >= (this.offsetTop + this.headerHeight + (week + 1)
+						* this.monthDayHeight)) {
 					int event_footenote = getFootenoteExists(events, week, day);
 					if (event_footenote > 0) {
 						events[i].setFootenote(event_footenote);
@@ -440,7 +474,7 @@ public class PDFWriter{
 		for (int i = 0; i < events.length; i++) {
 			int event_week = events[i].getWeek() - 1;
 			int event_day = events[i].getDay();
-			if ((event_week == week)&&(event_day == day)) {
+			if ((event_week == week) && (event_day == day)) {
 				int foote = events[i].getFootenote();
 				if (foote > 0) {
 					result = events[i].getFootenote();
@@ -450,7 +484,8 @@ public class PDFWriter{
 		return result;
 	}
 
-	private void monthFootenotesDraw(SchedulerEvent[] events, int footenotes) throws Exception {
+	private void monthFootenotesDraw(SchedulerEvent[] events, int footenotes)
+			throws Exception {
 		String[][] rows = this.parser.monthRowsParsing();
 		double[] borderColor = RGBColor.getColor(this.lineColor);
 		double[] eventColor = RGBColor.getColor(this.eventColor);
@@ -478,9 +513,11 @@ public class PDFWriter{
 				}
 				y = this.offsetTop;
 			}
-			TextLine label = new TextLine(this.f1, rows[week][day] + "[" + Integer.toString(i) + "]");
-			double label_x = x + (width - this.f1.stringWidth(label.getText()))/2;
-			double label_y = y + labelHeight  - this.cellOffset;
+			TextLine label = new TextLine(this.f1, rows[week][day] + "["
+					+ Integer.toString(i) + "]");
+			double label_x = x + (width - this.f1.stringWidth(label.getText()))
+					/ 2;
+			double label_y = y + labelHeight - this.cellOffset;
 			label.setPosition(label_x, label_y);
 			label.drawOn(this.page);
 			y += labelHeight;
@@ -493,8 +530,10 @@ public class PDFWriter{
 						x = this.offsetLeft;
 					}
 					y = this.offsetTop;
-					label_x = x + (width - this.f1.stringWidth(label.getText()))/2;
-					label_y = y + labelHeight  - this.cellOffset;
+					label_x = x
+							+ (width - this.f1.stringWidth(label.getText()))
+							/ 2;
+					label_y = y + labelHeight - this.cellOffset;
 					label.setPosition(label_x, label_y);
 					label.drawOn(this.page);
 					y += labelHeight;
@@ -511,20 +550,21 @@ public class PDFWriter{
 				contBg.setFillShape(true);
 				contBg.setColor(eventColor);
 				contBg.placeIn(cont, 0, 0);
-				
+
 				contBg.drawOn(this.page);
 				cont.drawOn(this.page);
-				
-				TextLine text = new TextLine(this.f1, this.textWrap(foot_events[j].getText(), width - 2*this.cellOffset, this.f1));
+
+				TextLine text = new TextLine(this.f1, this.textWrap(
+						foot_events[j].getText(), width - 2 * this.cellOffset,
+						this.f1));
 				text.setColor(eventTextColor);
 				double text_x = this.cellOffset;
-				double text_y = (height + this.f1.getSize())/2;
+				double text_y = (height + this.f1.getSize()) / 2;
 				text.setPosition(text_x, text_y);
 				text.placeIn(cont);
-				
+
 				text.drawOn(this.page);
-				
-				
+
 				y += height;
 			}
 		}
@@ -533,7 +573,8 @@ public class PDFWriter{
 		}
 	}
 
-	private SchedulerEvent[] getFootenoteEvents(SchedulerEvent[] events, int footenote) {
+	private SchedulerEvent[] getFootenoteEvents(SchedulerEvent[] events,
+			int footenote) {
 		SchedulerEvent[] foot_events = null;
 		int nums = 0;
 		for (int i = 0; i < events.length; i++) {
@@ -552,24 +593,22 @@ public class PDFWriter{
 		return foot_events;
 	}
 
-	
 	private void monthBwBordersDraw() throws Exception {
 		double[] borderColor = RGBColor.getColor(this.lineColor);
 		double x = this.offsetLeft;
 		double y = this.offsetTop;
 		this.Line(borderColor, x, y, x + this.pageWidth, y);
 		this.Line(borderColor, x, y, x, y + this.headerHeight);
-		
+
 		x = this.offsetLeft + this.pageWidth;
 		this.Line(borderColor, x, y, x, y + this.headerHeight);
 	}
-	
-	
+
 	private void weekHeaderDraw() throws Exception {
 		double[] bgColor = RGBColor.getColor(this.bgColor);
 		double[] borderColor = RGBColor.getColor(this.headerLineColor);
 		String[] cols = this.parser.weekColsParsing();
-		double width = (this.pageWidth - this.leftScaleWidth)/cols.length;
+		double width = (this.pageWidth - this.leftScaleWidth) / cols.length;
 		double height = this.headerHeight;
 		this.weekDayWidth = width;
 		double x = this.offsetLeft + this.leftScaleWidth;
@@ -581,14 +620,14 @@ public class PDFWriter{
 			cell.setFillShape(true);
 			cell.setPosition(x, y);
 			cell.drawOn(this.page);
-			
+
 			Line borderLeft = new Line();
 			borderLeft.setColor(borderColor);
 			borderLeft.setPattern(this.linePattern);
 			borderLeft.setStartPoint(0, 0);
 			borderLeft.setEndPoint(0, height);
 			borderLeft.placeIn(cell);
-			
+
 			Line borderTop = new Line();
 			borderTop.setColor(borderColor);
 			borderTop.setPattern(this.linePattern);
@@ -600,13 +639,14 @@ public class PDFWriter{
 			borderTop.drawOn(this.page);
 
 			this.f1.setSize(7.4);
-			TextLine text = new TextLine(this.f1, this.textWrap(cols[i], width - 2*this.cellOffset, this.f1));
-			double text_x = (width - this.f1.stringWidth(text.getText()))/2;
-			double text_y = (height + this.f1.getSize())/2;
+			TextLine text = new TextLine(this.f1, this.textWrap(cols[i], width
+					- 2 * this.cellOffset, this.f1));
+			double text_x = (width - this.f1.stringWidth(text.getText())) / 2;
+			double text_y = (height + this.f1.getSize()) / 2;
 			text.setPosition(text_x, text_y);
 			text.placeIn(cell);
 			text.drawOn(this.page);
-			
+
 			x += width;
 		}
 	}
@@ -614,9 +654,9 @@ public class PDFWriter{
 	private void weekMultidayDraw() throws Exception {
 		double[] bgColor = RGBColor.getColor(this.multidayColor);
 		double[] borderColor = RGBColor.getColor(this.headerLineColor);
-		
+
 		multiHeight = this.getMultidayHeight();
-		
+
 		Box cell = new Box();
 		cell.setSize(this.pageWidth, multiHeight);
 		cell.setColor(bgColor);
@@ -633,7 +673,7 @@ public class PDFWriter{
 		border.setEndPoint(this.leftScaleWidth, multiHeight);
 		border.placeIn(cell);
 		border.drawOn(this.page);
-		
+
 		border = new Line();
 		border.setColor(borderColor);
 		border.setPattern(this.linePattern);
@@ -662,9 +702,9 @@ public class PDFWriter{
 			if (scheme[i] > max)
 				max = scheme[i];
 		}
-		return max*this.multidayLineHeight;
+		return max * this.multidayLineHeight;
 	}
-	
+
 	private void weekContainerDraw() throws Exception {
 		double[] bgColor = RGBColor.getColor(this.bgColor);
 		double[] borderColor = RGBColor.getColor(this.lineColor);
@@ -673,7 +713,7 @@ public class PDFWriter{
 		double[] scaleTwoColor = RGBColor.getColor(this.scaleTwoColor);
 		String[] rows = this.parser.weekRowsParsing();
 		double width = this.leftScaleWidth;
-		double height = (this.pageHeight - this.headerHeight)/rows.length;
+		double height = (this.pageHeight - this.headerHeight) / rows.length;
 		this.weekDayHeight = height;
 		double x = this.offsetLeft;
 		double y = this.offsetTop + this.headerHeight;
@@ -683,36 +723,37 @@ public class PDFWriter{
 			cell.setColor(bgColor);
 			cell.setFillShape(true);
 			cell.setPosition(x, y);
-			
+
 			Box scaleOne = new Box();
 			scaleOne.setPosition(x + width, y);
-			scaleOne.setSize(this.pageWidth - width, height/2);
+			scaleOne.setSize(this.pageWidth - width, height / 2);
 			scaleOne.setFillShape(true);
 			scaleOne.setColor(scaleOneColor);
-			
+
 			Box scaleTwo = new Box();
-			scaleTwo.setPosition(x + width, y + height/2);
-			scaleTwo.setSize(this.pageWidth - width, height/2);
+			scaleTwo.setPosition(x + width, y + height / 2);
+			scaleTwo.setSize(this.pageWidth - width, height / 2);
 			scaleTwo.setFillShape(true);
 			scaleTwo.setColor(scaleTwoColor);
-			
+
 			cell.drawOn(this.page);
 			scaleOne.drawOn(this.page);
 			scaleTwo.drawOn(this.page);
 			this.Line(headerLineColor, 0, 0, width, 0, cell);
-			
-			TextLine text = new TextLine(this.f1, this.textWrap(rows[i], width - 2*this.cellOffset, this.f1));
-			double text_x = (width - this.f1.stringWidth(text.getText()))/2;
-			double text_y = (height + this.f1.getSize())/2;
+
+			TextLine text = new TextLine(this.f1, this.textWrap(rows[i], width
+					- 2 * this.cellOffset, this.f1));
+			double text_x = (width - this.f1.stringWidth(text.getText())) / 2;
+			double text_y = (height + this.f1.getSize()) / 2;
 			text.setPosition(text_x, text_y);
 			text.placeIn(cell);
 			text.drawOn(this.page);
-			
+
 			y += height;
 		}
 
 		String[] cols = this.parser.weekColsParsing();
-		width = (this.pageWidth - this.leftScaleWidth)/cols.length;
+		width = (this.pageWidth - this.leftScaleWidth) / cols.length;
 		x = this.offsetLeft + this.leftScaleWidth;
 		y = this.offsetTop + this.headerHeight;
 		for (int i = 0; i < cols.length; i++) {
@@ -723,7 +764,7 @@ public class PDFWriter{
 			colBorderLeft.setEndPoint(x, this.pageHeight + this.offsetTop);
 			colBorderLeft.drawOn(this.page);
 			x += width;
-	}
+		}
 
 		Line borderRight = new Line();
 		borderRight.setColor(borderColor);
@@ -740,25 +781,28 @@ public class PDFWriter{
 		double[] textColor = RGBColor.getColor(this.eventTextColor);
 		SchedulerEvent[] events = this.parser.getEvents();
 		for (int i = 0; i < events.length; i++) {
-			double x = this.offsetLeft + this.leftScaleWidth + events[i].getX()*this.weekDayWidth/100;
-			double y = this.offsetTop + this.headerHeight + events[i].getY()*this.weekDayHeight/100;
-			double width = events[i].getWidth()*this.weekDayWidth/100;
-			double height = events[i].getHeight()*this.weekDayHeight/100;
+			double x = this.offsetLeft + this.leftScaleWidth + events[i].getX()
+					* this.weekDayWidth / 100;
+			double y = this.offsetTop + this.headerHeight + events[i].getY()
+					* this.weekDayHeight / 100;
+			double width = events[i].getWidth() * this.weekDayWidth / 100;
+			double height = events[i].getHeight() * this.weekDayHeight / 100;
 			String text = events[i].getText();
 			String headerText = events[i].getHeaderText();
 			String bgColor = events[i].getBackgroundColor();
 			String color = events[i].getColor();
-			
+
 			Box eventCont = new Box();
 			eventCont.setPosition(x, y);
 			eventCont.setSize(width, height);
 			eventCont.setColor(eventBorderColor);
-			
-			
+
 			Box eventBg = new Box();
 			eventBg.setPosition(0, 0);
 			eventBg.setSize(width, height);
-			if ((bgColor.compareTo("transparent") != 0)&&((this.profile.compareTo("fullcolor") == 0)||(this.profile.compareTo("color") == 0))) {
+			if ((bgColor.compareTo("transparent") != 0)
+					&& ((this.profile.compareTo("fullcolor") == 0) || (this.profile
+							.compareTo("color") == 0))) {
 				eventBg.setColor(RGBColor.getColor(bgColor));
 			} else {
 				eventBg.setColor(eventColor);
@@ -771,23 +815,28 @@ public class PDFWriter{
 			headerCont.setSize(width, this.weekEventHeaderHeight);
 			headerCont.setColor(eventBorderColor);
 			headerCont.placeIn(eventCont, 0, 0);
-			
+
 			this.f1.setSize(7.4);
-			TextLine headerTxt = new TextLine(this.f1, this.textWrap(headerText, width, this.f1));
-			double text_x = (width - this.f1.stringWidth(headerTxt.getText()))/2;
-			double text_y = (this.weekEventHeaderHeight + this.f1.getSize())/2;
+			TextLine headerTxt = new TextLine(this.f1, this.textWrap(
+					headerText, width, this.f1));
+			double text_x = (width - this.f1.stringWidth(headerTxt.getText())) / 2;
+			double text_y = (this.weekEventHeaderHeight + this.f1.getSize()) / 2;
 			headerTxt.placeIn(eventCont);
 			headerTxt.setPosition(text_x, text_y);
-			if ((color.compareTo("transparent") != 0)&&((this.profile.compareTo("fullcolor") == 0)||(this.profile.compareTo("color") == 0))) {
+			if ((color.compareTo("transparent") != 0)
+					&& ((this.profile.compareTo("fullcolor") == 0) || (this.profile
+							.compareTo("color") == 0))) {
 				headerTxt.setColor(RGBColor.getColor(color));
 			} else {
 				headerTxt.setColor(textColor);
 			}
 
 			this.f1.setSize(7.4);
-			TextLine bodyTxt = new TextLine(this.f1, this.textWrap(text, width - 2*this.cellOffset, this.f1));
+			TextLine bodyTxt = new TextLine(this.f1, this.textWrap(text, width
+					- 2 * this.cellOffset, this.f1));
 			double body_text_x = this.cellOffset;
-			double body_text_y = this.weekEventHeaderHeight + (this.weekEventHeaderHeight + this.f1.getSize())/2;
+			double body_text_y = this.weekEventHeaderHeight
+					+ (this.weekEventHeaderHeight + this.f1.getSize()) / 2;
 			bodyTxt.placeIn(eventCont);
 			bodyTxt.setPosition(body_text_x, body_text_y);
 			if (color.compareTo("transparent") == 0) {
@@ -802,7 +851,7 @@ public class PDFWriter{
 			headerTxt.drawOn(this.page);
 			bodyTxt.drawOn(this.page);
 		}
-		
+
 		// preparing scheme to calculate multiday position
 		String[] cols = this.parser.weekColsParsing();
 		int[] scheme = new int[cols.length];
@@ -819,10 +868,12 @@ public class PDFWriter{
 			String bgColor = ev.getBackgroundColor();
 			String color = ev.getColor();
 
-			double width = len*this.weekDayWidth - 2*offset;
+			double width = len * this.weekDayWidth - 2 * offset;
 			double height = this.monthEventHeight;
-			double x = this.offsetLeft + this.leftScaleWidth + day*this.weekDayWidth + offset;
-			double y = this.offsetTop + this.headHeight + scheme[day]*this.multidayLineHeight;
+			double x = this.offsetLeft + this.leftScaleWidth + day
+					* this.weekDayWidth + offset;
+			double y = this.offsetTop + this.headHeight + scheme[day]
+					* this.multidayLineHeight;
 
 			Box eventCont = new Box();
 			eventCont.setPosition(x, y);
@@ -833,21 +884,25 @@ public class PDFWriter{
 			cont.setPosition(x, y);
 			cont.setSize(width, height);
 			cont.setFillShape(true);
-			if ((bgColor.compareTo("transparent") != 0)&&((this.profile.compareTo("fullcolor") == 0)||(this.profile.compareTo("color") == 0))) {
+			if ((bgColor.compareTo("transparent") != 0)
+					&& ((this.profile.compareTo("fullcolor") == 0) || (this.profile
+							.compareTo("color") == 0))) {
 				cont.setColor(RGBColor.getColor(bgColor));
 			} else {
 				cont.setColor(eventColor);
 			}
 			cont.placeIn(eventCont, 0, 0);
 
-			
 			this.f1.setSize(7.4);
-			TextLine txt = new TextLine(this.f1, this.textWrap(text, width, this.f1));
+			TextLine txt = new TextLine(this.f1, this.textWrap(text, width,
+					this.f1));
 			double txt_x = this.cellOffset;
-			double txt_y = (this.weekEventHeaderHeight + this.f1.getSize())/2;
+			double txt_y = (this.weekEventHeaderHeight + this.f1.getSize()) / 2;
 			txt.placeIn(eventCont);
 			txt.setPosition(txt_x, txt_y);
-			if ((color.compareTo("transparent") != 0)&&((this.profile.compareTo("fullcolor") == 0)||(this.profile.compareTo("color") == 0))) {
+			if ((color.compareTo("transparent") != 0)
+					&& ((this.profile.compareTo("fullcolor") == 0) || (this.profile
+							.compareTo("color") == 0))) {
 				txt.setColor(RGBColor.getColor(color));
 			} else {
 				txt.setColor(textColor);
@@ -856,54 +911,60 @@ public class PDFWriter{
 			cont.drawOn(this.page);
 			eventCont.drawOn(this.page);
 			txt.drawOn(this.page);
-			
+
 			for (int j = day; j < day + len; j++)
 				scheme[j]++;
 		}
 	}
-	
+
 	private void weekBwBordersDraw() throws Exception {
 		double[] borderColor = RGBColor.getColor(this.lineColor);
 
 		double x = this.offsetLeft;
 		double y = this.offsetTop;
-		this.Line(borderColor, x + this.leftScaleWidth, y, x + this.pageWidth, y);
+		this.Line(borderColor, x + this.leftScaleWidth, y, x + this.pageWidth,
+				y);
 
 		if (this.multiHeight > 0) {
 			y = this.offsetTop + this.headerHeight - this.multiHeight;
-			this.Line(borderColor, x + this.leftScaleWidth, y, x + this.pageWidth, y);
-			this.Line(borderColor, x, y, x, y + this.pageHeight - (this.headerHeight - this.multiHeight));
+			this.Line(borderColor, x + this.leftScaleWidth, y, x
+					+ this.pageWidth, y);
+			this.Line(borderColor, x, y, x, y + this.pageHeight
+					- (this.headerHeight - this.multiHeight));
 		}
-		
+
 		y = this.offsetTop + this.headerHeight;
 		this.Line(borderColor, x, y, x + this.pageWidth, y);
-		
+
 		y = this.offsetTop + this.pageHeight;
 		this.Line(borderColor, x, y, x + this.pageWidth, y);
-		
+
 		x = this.offsetLeft + this.leftScaleWidth;
 		y = this.offsetTop;
 		this.Line(borderColor, x, y, x, y + this.headerHeight);
-		
+
 		x = this.offsetLeft + this.pageWidth;
 		this.Line(borderColor, x, y, x, y + this.headerHeight);
 
 	}
 
-	private Line Line(double[] color, double x1, double y1, double x2, double y2) throws Exception {
+	private Line Line(double[] color, double x1, double y1, double x2, double y2)
+			throws Exception {
 		Line border = this.prepareLine(color, x1, y1, x2, y2);
 		border.drawOn(this.page);
 		return border;
 	}
 
-	private Line Line(double[] color, double x1, double y1, double x2, double y2, Box parent) throws Exception {
+	private Line Line(double[] color, double x1, double y1, double x2,
+			double y2, Box parent) throws Exception {
 		Line border = this.prepareLine(color, x1, y1, x2, y2);
 		border.placeIn(parent);
 		border.drawOn(this.page);
 		return border;
 	}
 
-	private Line prepareLine(double[] color, double x1, double y1, double x2, double y2) throws Exception {
+	private Line prepareLine(double[] color, double x1, double y1, double x2,
+			double y2) throws Exception {
 		Line border = new Line();
 		border.setColor(color);
 		border.setPattern(this.linePattern);
@@ -911,7 +972,7 @@ public class PDFWriter{
 		border.setEndPoint(x2, y2);
 		return border;
 	}
-	
+
 	private void timelineContainerDraw() throws Exception {
 		double[] bgColor = RGBColor.getColor(this.bgColor);
 		double[] borderColor = RGBColor.getColor(this.lineColor);
@@ -919,7 +980,7 @@ public class PDFWriter{
 		double[] scaleOneColor = RGBColor.getColor(this.scaleOneColor);
 		String[] rows = this.parser.weekRowsParsing();
 		double width = this.leftScaleWidth;
-		double height = (this.pageHeight - this.headerHeight)/rows.length;
+		double height = (this.pageHeight - this.headerHeight) / rows.length;
 		this.weekDayHeight = height;
 		double x = this.offsetLeft;
 		double y = this.offsetTop + this.headerHeight;
@@ -929,25 +990,25 @@ public class PDFWriter{
 			cell.setColor(bgColor);
 			cell.setFillShape(true);
 			cell.setPosition(x, y);
-			
+
 			Box scaleOne = new Box();
 			scaleOne.setPosition(x + width, y);
 			scaleOne.setSize(this.pageWidth - width, height);
 			scaleOne.setFillShape(true);
 			scaleOne.setColor(scaleOneColor);
 
-
 			cell.drawOn(this.page);
 			scaleOne.drawOn(this.page);
 			this.Line(headerLineColor, 0, 0, width, 0, cell);
-			
-			TextLine text = new TextLine(this.f1, this.textWrap(rows[i], width - 2*this.cellOffset, this.f1));
-			double text_x = (width - this.f1.stringWidth(text.getText()))/2;
-			double text_y = (height + this.f1.getSize())/2;
+
+			TextLine text = new TextLine(this.f1, this.textWrap(rows[i], width
+					- 2 * this.cellOffset, this.f1));
+			double text_x = (width - this.f1.stringWidth(text.getText())) / 2;
+			double text_y = (height + this.f1.getSize()) / 2;
 			text.setPosition(text_x, text_y);
 			text.placeIn(cell);
 			text.drawOn(this.page);
-			
+
 			y += height;
 		}
 		Line borderBottom = new Line();
@@ -962,14 +1023,15 @@ public class PDFWriter{
 			Line colBorderBottom = new Line();
 			colBorderBottom.setColor(borderColor);
 			colBorderBottom.setPattern(this.linePattern);
-			colBorderBottom.setStartPoint(this.offsetLeft + this.leftScaleWidth, y);
+			colBorderBottom.setStartPoint(
+					this.offsetLeft + this.leftScaleWidth, y);
 			colBorderBottom.setEndPoint(this.offsetLeft + this.pageWidth, y);
 			colBorderBottom.drawOn(this.page);
 			y += height;
 		}
-		
+
 		String[] cols = this.parser.weekColsParsing();
-		width = (this.pageWidth - this.leftScaleWidth)/cols.length;
+		width = (this.pageWidth - this.leftScaleWidth) / cols.length;
 		x = this.offsetLeft + this.leftScaleWidth;
 		y = this.offsetTop + this.headerHeight;
 		for (int i = 0; i < cols.length; i++) {
@@ -984,10 +1046,12 @@ public class PDFWriter{
 		Line colBorderTop = new Line();
 		colBorderTop.setColor(borderColor);
 		colBorderTop.setPattern(this.linePattern);
-		colBorderTop.setStartPoint(this.offsetLeft + this.leftScaleWidth, this.offsetTop + this.headerHeight);
-		colBorderTop.setEndPoint(this.offsetLeft + this.pageWidth, this.offsetTop + this.headerHeight);
+		colBorderTop.setStartPoint(this.offsetLeft + this.leftScaleWidth,
+				this.offsetTop + this.headerHeight);
+		colBorderTop.setEndPoint(this.offsetLeft + this.pageWidth,
+				this.offsetTop + this.headerHeight);
 		colBorderTop.drawOn(this.page);
-		
+
 		Line borderRight = new Line();
 		borderRight.setColor(borderColor);
 		borderRight.setPattern(this.linePattern);
@@ -996,8 +1060,6 @@ public class PDFWriter{
 		borderRight.drawOn(this.page);
 	}
 
-	
-	
 	private void matrixContainerDraw() throws Exception {
 		double[] bgColor = RGBColor.getColor(this.bgColor);
 		double[] borderColor = RGBColor.getColor(this.lineColor);
@@ -1005,26 +1067,31 @@ public class PDFWriter{
 		double[] matrixEventColor = RGBColor.getColor(this.matrixEventColor);
 		double[] textColor = RGBColor.getColor(this.textColor);
 		String[] rows = this.parser.weekRowsParsing();
-		double height = (this.pageHeight - this.headerHeight)/rows.length;
+		double height = (this.pageHeight - this.headerHeight) / rows.length;
 		String[] cols = this.parser.weekColsParsing();
 		SchedulerEvent[] events = this.parser.getEvents();
-		
+
 		for (int i = 0; i < rows.length; i++) {
 			for (int j = 0; j <= cols.length; j++) {
-				SchedulerEvent ev = events[i*(cols.length + 1) + j];
+				SchedulerEvent ev = events[i * (cols.length + 1) + j];
 				String evBgColor = ev.getBackgroundColor();
 				String evTextColor = ev.getColor();
 				String text = ev.getText();
-				double x = this.offsetLeft + Math.max(j - 1, 0)*this.weekDayWidth + (j != 0 ? 1 : 0)*this.leftScaleWidth;
-				double y = this.offsetTop + this.headerHeight + i*height;
-				
-				double width = (j == 0) ? this.leftScaleWidth : this.weekDayWidth;
+				double x = this.offsetLeft + Math.max(j - 1, 0)
+						* this.weekDayWidth + (j != 0 ? 1 : 0)
+						* this.leftScaleWidth;
+				double y = this.offsetTop + this.headerHeight + i * height;
+
+				double width = (j == 0) ? this.leftScaleWidth
+						: this.weekDayWidth;
 
 				Box cell = new Box();
 				cell.setPosition(x, y);
 				cell.setSize(width, height);
 				cell.setFillShape(true);
-				if ((evBgColor.compareTo("transparent") != 0)&&((this.profile.compareTo("fullcolor") == 0)||(this.profile.compareTo("color") == 0))) {
+				if ((evBgColor.compareTo("transparent") != 0)
+						&& ((this.profile.compareTo("fullcolor") == 0) || (this.profile
+								.compareTo("color") == 0))) {
 					cell.setColor(RGBColor.getColor(evBgColor));
 				} else {
 					cell.setColor(matrixEventColor);
@@ -1035,21 +1102,23 @@ public class PDFWriter{
 
 				// draw cell text
 				this.f1.setSize((j == 0) ? 7.4 : 8.4);
-				TextLine txt = new TextLine(this.f1, this.textWrap(text, width - 2*this.cellOffset, this.f1));
-				double text_x = (width - this.f1.stringWidth(txt.getText()))/2;
-				double text_y = (height + this.f1.getSize())/2;
+				TextLine txt = new TextLine(this.f1, this.textWrap(text, width
+						- 2 * this.cellOffset, this.f1));
+				double text_x = (width - this.f1.stringWidth(txt.getText())) / 2;
+				double text_y = (height + this.f1.getSize()) / 2;
 				txt.setPosition(text_x, text_y);
-				
-				if ((evTextColor.compareTo("transparent") != 0)&&((this.profile.compareTo("fullcolor") == 0)||(this.profile.compareTo("color") == 0))) {
+
+				if ((evTextColor.compareTo("transparent") != 0)
+						&& ((this.profile.compareTo("fullcolor") == 0) || (this.profile
+								.compareTo("color") == 0))) {
 					txt.setColor(RGBColor.getColor(evTextColor));
 				} else {
 					txt.setColor(textColor);
 				}
-				
+
 				txt.placeIn(cell);
 				txt.drawOn(this.page);
-				
-				
+
 				// draw borders
 				if (j == 0) {
 					this.Line(headerLineColor, 0, 0, width, 0, cell);
@@ -1059,13 +1128,14 @@ public class PDFWriter{
 				}
 			}
 		}
-		
+
 		// border right
 		Line border = new Line();
 		border.setColor(borderColor);
 		border.setPattern(this.linePattern);
 		border.setStartPoint(this.offsetLeft + this.pageWidth, this.offsetTop);
-		border.setEndPoint(this.offsetLeft + this.pageWidth, this.offsetTop + this.pageHeight);
+		border.setEndPoint(this.offsetLeft + this.pageWidth, this.offsetTop
+				+ this.pageHeight);
 		border.drawOn(this.page);
 
 		// border bottom
@@ -1073,11 +1143,11 @@ public class PDFWriter{
 		border.setColor(borderColor);
 		border.setPattern(this.linePattern);
 		border.setStartPoint(this.offsetLeft, this.offsetTop + this.pageHeight);
-		border.setEndPoint(this.offsetLeft + this.pageWidth, this.offsetTop + this.pageHeight);
+		border.setEndPoint(this.offsetLeft + this.pageWidth, this.offsetTop
+				+ this.pageHeight);
 		border.drawOn(this.page);
 	}
-	
-	
+
 	private void timelineEventsDraw() throws Exception {
 		double[] eventBorderColor = RGBColor.getColor(this.eventBorderColor);
 		double[] eventColor = RGBColor.getColor(this.eventColor);
@@ -1091,9 +1161,12 @@ public class PDFWriter{
 			String bgColor = ev.getBackgroundColor();
 			String color = ev.getColor();
 
-			double x = this.offsetLeft + this.leftScaleWidth + ev.getX()*this.weekDayWidth/100 + offset;
-			double y = this.offsetTop + this.headerHeight + ev.getY()*this.weekDayHeight/100 + ev.getWeek()*this.weekDayHeight;
-			double width = ev.getWidth()*this.weekDayWidth/100;
+			double x = this.offsetLeft + this.leftScaleWidth + ev.getX()
+					* this.weekDayWidth / 100 + offset;
+			double y = this.offsetTop + this.headerHeight + ev.getY()
+					* this.weekDayHeight / 100 + ev.getWeek()
+					* this.weekDayHeight;
+			double width = ev.getWidth() * this.weekDayWidth / 100;
 			double height = this.monthEventHeight;
 
 			Box eventCont = new Box();
@@ -1105,7 +1178,9 @@ public class PDFWriter{
 			cont.setPosition(x, y);
 			cont.setSize(width, height);
 			cont.setFillShape(true);
-			if ((bgColor.compareTo("transparent") != 0)&&((this.profile.compareTo("fullcolor") == 0)||(this.profile.compareTo("color") == 0))) {
+			if ((bgColor.compareTo("transparent") != 0)
+					&& ((this.profile.compareTo("fullcolor") == 0) || (this.profile
+							.compareTo("color") == 0))) {
 				cont.setColor(RGBColor.getColor(bgColor));
 			} else {
 				cont.setColor(eventColor);
@@ -1113,12 +1188,15 @@ public class PDFWriter{
 			cont.placeIn(eventCont, 0, 0);
 
 			this.f1.setSize(7.4);
-			TextLine txt = new TextLine(this.f1, this.textWrap(text, width, this.f1));
+			TextLine txt = new TextLine(this.f1, this.textWrap(text, width,
+					this.f1));
 			double txt_x = this.cellOffset;
-			double txt_y = (this.weekEventHeaderHeight + this.f1.getSize())/2;
+			double txt_y = (this.weekEventHeaderHeight + this.f1.getSize()) / 2;
 			txt.placeIn(eventCont);
 			txt.setPosition(txt_x, txt_y);
-			if ((color.compareTo("transparent") != 0)&&((this.profile.compareTo("fullcolor") == 0)||(this.profile.compareTo("color") == 0))) {
+			if ((color.compareTo("transparent") != 0)
+					&& ((this.profile.compareTo("fullcolor") == 0) || (this.profile
+							.compareTo("color") == 0))) {
 				txt.setColor(RGBColor.getColor(color));
 			} else {
 				txt.setColor(textColor);
@@ -1129,24 +1207,26 @@ public class PDFWriter{
 			txt.drawOn(this.page);
 		}
 	}
-	
+
 	private void yearDraw() throws Exception {
 		double[] bgColor = RGBColor.getColor(this.bgColor);
 		double[] borderColor = RGBColor.getColor(this.lineColor);
 		double[] headerLineColor = RGBColor.getColor(this.headerLineColor);
 		double[] textColor = RGBColor.getColor(this.textColor);
 		double[] eventColor = RGBColor.getColor(this.eventColor);
-		double[] yearDayActiveColor = RGBColor.getColor(this.yearDayActiveColor);
-		double[] yearDayInactiveColor = RGBColor.getColor(this.yearDayInactiveColor);
+		double[] yearDayActiveColor = RGBColor
+				.getColor(this.yearDayActiveColor);
+		double[] yearDayInactiveColor = RGBColor
+				.getColor(this.yearDayInactiveColor);
 		SchedulerMonth[] monthes = this.parser.yearParsing();
 		SchedulerEvent[] events = this.parser.getEvents();
-		double width = (this.pageWidth - this.yearMonthOffsetLeft*3)/4;
-		double height = (this.pageHeight - this.yearMonthOffsetTop*2)/3;
+		double width = (this.pageWidth - this.yearMonthOffsetLeft * 3) / 4;
+		double height = (this.pageHeight - this.yearMonthOffsetTop * 2) / 3;
 		double month_x = this.offsetLeft;
 		double month_y = this.offsetTop;
 		for (int i = 0; i < 3; i++) {
 			for (int j = 0; j < 4; j++) {
-				SchedulerMonth mon = monthes[i*4 + j];
+				SchedulerMonth mon = monthes[i * 4 + j];
 				String label = mon.getLabel();
 				String[][] rows = mon.getRows();
 				String[][] onlyDays = mon.getOnlyDays();
@@ -1155,26 +1235,29 @@ public class PDFWriter{
 				monthCont.setSize(width, height);
 				monthCont.setFillShape(true);
 				monthCont.setColor(bgColor);
-				
+
 				Box monthBg = new Box();
 				monthBg.setPosition(0, 0);
 				monthBg.setSize(width, height);
 				monthBg.setColor(bgColor);
 				monthBg.placeIn(monthCont, 0, 0);
 
-				TextLine labelText = new TextLine(this.f1, this.textWrap(label, width, this.f1));
-				double label_text_x = (width - this.f1.stringWidth(label))/2;
-				double label_text_y = (this.yearMonthLabelHeight + this.f1.getSize())/2;
+				TextLine labelText = new TextLine(this.f1, this.textWrap(label,
+						width, this.f1));
+				double label_text_x = (width - this.f1.stringWidth(label)) / 2;
+				double label_text_y = (this.yearMonthLabelHeight + this.f1
+						.getSize()) / 2;
 				labelText.placeIn(monthCont);
 				labelText.setPosition(label_text_x, label_text_y);
 				labelText.setColor(textColor);
-				
+
 				monthBg.drawOn(this.page);
 				monthCont.drawOn(this.page);
 				labelText.drawOn(this.page);
-				
-				double cell_width = width/7;
-				double cell_height = (height - this.yearMonthLabelHeight)/rows.length;
+
+				double cell_width = width / 7;
+				double cell_height = (height - this.yearMonthLabelHeight)
+						/ rows.length;
 				double cell_x = 0;
 				double cell_y = this.yearMonthLabelHeight;
 				for (int k = 0; k < rows.length; k++) {
@@ -1186,23 +1269,25 @@ public class PDFWriter{
 						cell.setFillShape(true);
 						cell.setPattern(this.linePattern);
 						cell.placeIn(monthCont, cell_x, cell_y);
-						
-						int ind = this.getEventIndex(events, l, k - 1, i*4 + j);
+
+						int ind = this.getEventIndex(events, l, k - 1, i * 4
+								+ j);
 						if (k == 0) {
 							cell.setColor(bgColor);
 						} else {
-								if (this.getActiveDay(onlyDays, k - 1, l) == true) {
+							if (this.getActiveDay(onlyDays, k - 1, l) == true) {
 								if (ind == -1) {
 									cell.setColor(yearDayActiveColor);
 								} else {
 									SchedulerEvent ev = events[ind];
 									String color = ev.getBackgroundColor();
-									if ((color.compareTo("transparent") != 0)&&(this.profile.compareTo("color") == 0)) {
+									if ((color.compareTo("transparent") != 0)
+											&& (this.profile.compareTo("color") == 0)) {
 										cell.setColor(RGBColor.getColor(color));
-							} else {
-								cell.setColor(eventColor);
-							}
-						}
+									} else {
+										cell.setColor(eventColor);
+									}
+								}
 							} else {
 								cell.setColor(yearDayInactiveColor);
 							}
@@ -1210,30 +1295,35 @@ public class PDFWriter{
 
 						cell.drawOn(this.page);
 						if (k == 0)
-							this.Line(headerLineColor, 0, 0, cell_width, 0, cell);
+							this.Line(headerLineColor, 0, 0, cell_width, 0,
+									cell);
 						else
 							this.Line(borderColor, 0, 0, cell_width, 0, cell);
 						if (l > 0)
 							if (k == 0)
-								this.Line(headerLineColor, 0, 0, 0, cell_height, cell);
+								this.Line(headerLineColor, 0, 0, 0,
+										cell_height, cell);
 							else
-								this.Line(borderColor, 0, 0, 0, cell_height, cell);
+								this.Line(borderColor, 0, 0, 0, cell_height,
+										cell);
 
 						TextLine cell_text = new TextLine(this.f1, rows[k][l]);
-						double cell_text_x = (cell_width - this.f1.stringWidth(cell_text.getText()))/2;
-						double cell_text_y = (cell_height + this.f1.getSize())/2;
+						double cell_text_x = (cell_width - this.f1
+								.stringWidth(cell_text.getText())) / 2;
+						double cell_text_y = (cell_height + this.f1.getSize()) / 2;
 						cell_text.setPosition(cell_text_x, cell_text_y);
 						cell_text.placeIn(cell);
 						if (ind > -1) {
 							SchedulerEvent ev = events[ind];
 							String color = ev.getColor();
-							if ((color.compareTo("transparent") != 0)&&(this.profile.compareTo("color") == 0))
+							if ((color.compareTo("transparent") != 0)
+									&& (this.profile.compareTo("color") == 0))
 								cell_text.setColor(RGBColor.getColor(color));
 							else
 								cell_text.setColor(textColor);
 						} else
-						cell_text.setColor(textColor);
-						
+							cell_text.setColor(textColor);
+
 						cell_text.drawOn(this.page);
 						cell_x += cell_width;
 					}
@@ -1243,8 +1333,10 @@ public class PDFWriter{
 				if (this.profile.compareTo("bw") == 0) {
 					this.Line(headerLineColor, 0, 0, 0, height, monthCont);
 					this.Line(headerLineColor, 0, 0, width, 0, monthCont);
-					this.Line(headerLineColor, 0, height, width, height, monthCont);
-					this.Line(headerLineColor, width, 0, width, height, monthCont);
+					this.Line(headerLineColor, 0, height, width, height,
+							monthCont);
+					this.Line(headerLineColor, width, 0, width, height,
+							monthCont);
 				}
 				month_x += this.yearMonthOffsetLeft + width;
 			}
@@ -1252,7 +1344,7 @@ public class PDFWriter{
 			month_y += this.yearMonthOffsetTop + height;
 		}
 	}
-	
+
 	private void agendaHeaderDraw() throws Exception {
 		double[] bgColor = RGBColor.getColor(this.bgColor);
 		double[] borderColor = RGBColor.getColor(this.headerLineColor);
@@ -1275,10 +1367,10 @@ public class PDFWriter{
 		headerBg.setFillShape(true);
 		headerBg.setColor(bgColor);
 		headerBg.placeIn(headerCont, 0, 0);
-		
+
 		double date_width = this.agendaColOneWidth;
-		double name_width = width - this.agendaColOneWidth;		
-		
+		double name_width = width - this.agendaColOneWidth;
+
 		Line sep = new Line();
 		sep.setColor(borderColor);
 		sep.setPattern(this.linePattern);
@@ -1287,15 +1379,17 @@ public class PDFWriter{
 		sep.placeIn(headerCont);
 
 		TextLine dateText = new TextLine(this.f1, cols[0]);
-		double date_text_x = (date_width - this.f1.stringWidth(dateText.getText()))/2;
-		double date_text_y = (height + this.f1.getSize())/2;
+		double date_text_x = (date_width - this.f1.stringWidth(dateText
+				.getText())) / 2;
+		double date_text_y = (height + this.f1.getSize()) / 2;
 		dateText.setPosition(date_text_x, date_text_y);
 		dateText.placeIn(headerCont);
 		dateText.setColor(textColor);
 
 		TextLine nameText = new TextLine(this.f1, cols[1]);
-		double name_text_x = date_width + (name_width - this.f1.stringWidth(nameText.getText()))/2;
-		double name_text_y = (height + this.f1.getSize())/2;
+		double name_text_x = date_width
+				+ (name_width - this.f1.stringWidth(nameText.getText())) / 2;
+		double name_text_y = (height + this.f1.getSize()) / 2;
 		nameText.setPosition(name_text_x, name_text_y);
 		nameText.placeIn(headerCont);
 		nameText.setColor(textColor);
@@ -1337,7 +1431,7 @@ public class PDFWriter{
 			headerCont.setPosition(x, y);
 			headerCont.setFillShape(true);
 			headerCont.setPattern(this.linePattern);
-			if (i%2 == 0) {
+			if (i % 2 == 0) {
 				headerCont.setColor(scaleOneColor);
 			} else {
 				headerCont.setColor(scaleTwoColor);
@@ -1353,26 +1447,27 @@ public class PDFWriter{
 			dateCont.placeIn(headerCont, 0, 0);
 
 			TextLine dateText = new TextLine(this.f1, headerText);
-			double date_text_x = (date_width - this.f1.stringWidth(dateText.getText()))/2;
-			double date_text_y = (height + this.f1.getSize())/2;
+			double date_text_x = (date_width - this.f1.stringWidth(dateText
+					.getText())) / 2;
+			double date_text_y = (height + this.f1.getSize()) / 2;
 			dateText.setPosition(date_text_x, date_text_y);
 			dateText.placeIn(headerCont);
 			dateText.setColor(textColor);
 
 			TextLine nameText = new TextLine(this.f1, text);
 			double name_text_x = date_width + this.cellOffset;
-			double name_text_y = (height + this.f1.getSize())/2;
+			double name_text_y = (height + this.f1.getSize()) / 2;
 			nameText.setPosition(name_text_x, name_text_y);
 			nameText.placeIn(headerCont);
 			nameText.setColor(textColor);
-			
+
 			Line borderLeft = new Line();
 			borderLeft.setColor(borderColor);
 			borderLeft.setPattern(this.linePattern);
 			borderLeft.setStartPoint(0, 0);
 			borderLeft.setEndPoint(0, height);
 			borderLeft.placeIn(headerCont);
-			
+
 			Line borderTop = new Line();
 			borderTop.setColor(borderColor);
 			borderTop.setPattern(this.linePattern);
@@ -1386,7 +1481,7 @@ public class PDFWriter{
 			borderRight.setStartPoint(width, 0);
 			borderRight.setEndPoint(width, height);
 			borderRight.placeIn(headerCont);
-			
+
 			Line sep = new Line();
 			sep.setColor(borderColor);
 			sep.setPattern(this.linePattern);
@@ -1411,27 +1506,29 @@ public class PDFWriter{
 		borderBottom.setEndPoint(x + width, y);
 		borderBottom.drawOn(this.page);
 	}
-	
+
 	private void agendaPagesDraw() throws Exception {
 		java.util.Iterator<Page> itr = this.pages.iterator();
 		int i = 1;
 		while (itr.hasNext()) {
 			Page page = itr.next();
-			if ((this.profile.compareTo("bw") == 0)&&(this.parser.getMode().compareTo("month") != 0))
+			if ((this.profile.compareTo("bw") == 0)
+					&& (this.parser.getMode().compareTo("month") != 0))
 				this.monthBwBordersDraw();
 			String str = this.pageNumTemplate;
 			str = str.replace("{pageNum}", Integer.toString(i));
 			str = str.replace("{allNum}", Integer.toString(this.pages.size()));
 			TextLine text = new TextLine(this.f1, str);
 			text.setColor(RGBColor.getColor(this.textColor));
-			double x = this.pageWidth + this.offsetLeft - this.f1.stringWidth(str);
+			double x = this.pageWidth + this.offsetLeft
+					- this.f1.stringWidth(str);
 			double y = this.pageHeight + this.offsetTop + this.f1.getSize();
 			text.setPosition(x, y);
 			text.drawOn(page);
 			i++;
 		}
 	}
-	
+
 	private void todayLabelDraw() throws Exception {
 		this.f1.setSize(10);
 		double[] textColor = RGBColor.getColor(this.textColor);
@@ -1445,12 +1542,13 @@ public class PDFWriter{
 		todayText.drawOn(p1);
 	}
 
-	private int getEventIndex(SchedulerEvent[] events, int day, int week, int month) throws IOException {
+	private int getEventIndex(SchedulerEvent[] events, int day, int week,
+			int month) throws IOException {
 		for (int i = 0; i < events.length; i++) {
 			int ev_day = events[i].getDay();
 			int ev_week = events[i].getWeek();
 			int ev_month = events[i].getMonth();
-			if ((ev_day == day)&&(ev_week == week)&&(ev_month == month)) {
+			if ((ev_day == day) && (ev_week == week) && (ev_month == month)) {
 				return i;
 			}
 		}
@@ -1459,17 +1557,19 @@ public class PDFWriter{
 
 	private void outputPDF(HttpServletResponse resp) throws Throwable {
 		this.pdf.wrap();
-        resp.setContentType("application/pdf");
-        this.pdf.getData().writeTo(resp.getOutputStream());
+		resp.setContentType("application/pdf");
+		this.pdf.getData().writeTo(resp.getOutputStream());
 	}
 
 	private String textWrap(String text, double width, Font f) {
-		if (text == null) return "";
-		if (text.length() == 0) return text;
+		if (text == null)
+			return "";
+		if (text.length() == 0)
+			return text;
 		if (f.stringWidth(text) <= width) {
 			return text;
 		}
-		while ((f.stringWidth(text + "...") > width)&&(text.length() > 0)) {
+		while ((f.stringWidth(text + "...") > width) && (text.length() > 0)) {
 			text = text.substring(0, text.length() - 1);
 		}
 		return text + "...";
@@ -1488,11 +1588,11 @@ public class PDFWriter{
 		int prevDay = Integer.parseInt(rows[0][0]);
 		for (int i = 0; i < rows.length; i++) {
 			for (int j = 0; j < rows[i].length; j++) {
-				if ((Integer.parseInt(rows[i][j]) < prevDay)&&(flagCount < 2)) {
+				if ((Integer.parseInt(rows[i][j]) < prevDay) && (flagCount < 2)) {
 					flag = !flag;
 					flagCount++;
 				}
-				if ((i == row)&&(j == col)) {
+				if ((i == row) && (j == col)) {
 					return flag;
 				}
 				prevDay = Integer.parseInt(rows[i][j]);
@@ -1500,12 +1600,14 @@ public class PDFWriter{
 		}
 		return flag;
 	}
-	
-	public String getView(){
+
+	public String getView() {
 		return this.view;
 	}
+
 	private void setColorProfile(String profile) {
-		if ((profile.compareTo("color") == 0)||(profile.compareTo("fullcolor") == 0)) {
+		if ((profile.compareTo("color") == 0)
+				|| (profile.compareTo("fullcolor") == 0)) {
 			this.bgColor = "C2D5FC";
 			this.lineColor = "c1d4fc";
 			this.headerLineColor = "FFFFFF";
@@ -1523,6 +1625,7 @@ public class PDFWriter{
 			this.yearDayInactiveColor = "D6D6D6";
 			this.multidayColor = "E1E6FF";
 			this.matrixEventColor = "FFFFFF";
+			this.watermarkTextColor = "8b8b8b";
 		} else {
 			if (profile.compareTo("gray") == 0) {
 				this.bgColor = "D3D3D3";
@@ -1542,6 +1645,7 @@ public class PDFWriter{
 				this.yearDayInactiveColor = "E2E3E6";
 				this.multidayColor = "E7E7E7";
 				this.matrixEventColor = "FFFFFF";
+				this.watermarkTextColor = "8b8b8b";
 			} else {
 				this.bgColor = "FFFFFF";
 				this.lineColor = "000000";
@@ -1560,6 +1664,7 @@ public class PDFWriter{
 				this.yearDayInactiveColor = "FFFFFF";
 				this.multidayColor = "FFFFFF";
 				this.matrixEventColor = "FFFFFF";
+				this.watermarkTextColor = "000000";
 			}
 		}
 	}
@@ -1568,7 +1673,7 @@ public class PDFWriter{
 		Boolean header = this.parser.getHeader();
 		if (header == true) {
 			String fileName = this.pathToImgs + "/header.jpg";
-	        FileInputStream fis = new FileInputStream(fileName);
+			FileInputStream fis = new FileInputStream(fileName);
 			Image im = new Image(this.pdf, fis, ImageType.JPEG);
 			im.setPosition(this.offsetLeft, this.offsetTop);
 			im.scaleBy(1);
@@ -1584,11 +1689,16 @@ public class PDFWriter{
 			String fileName = this.pathToImgs + "/footer.jpg";
 			FileInputStream fis = new FileInputStream(fileName);
 			Image im = new Image(this.pdf, fis, ImageType.JPEG);
-			im.setPosition(this.offsetLeft, this.pageHeight + this.offsetTop - this.footerImgHeight);
+			im.setPosition(this.offsetLeft, this.pageHeight + this.offsetTop
+					- this.footerImgHeight);
 			im.scaleBy(1);
 			im.drawOn(this.page);
 			this.pageHeight -= this.footerImgHeight;
 			this.offsetBottom += this.footerImgHeight;
 		}
+	}
+
+	public void setWatermark(String mark) {
+		watermark = mark;	
 	}
 }

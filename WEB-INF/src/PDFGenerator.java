@@ -1,5 +1,3 @@
-
-
 import java.io.IOException;
 import java.net.URLDecoder;
 import javax.servlet.http.*;
@@ -15,6 +13,7 @@ public class PDFGenerator extends HttpServlet {
 		String xml;
 		xml = req.getParameter("mycoolxmlbody");
 		xml = URLDecoder.decode(xml, "UTF-8");
-		(new PDFWriter()).generate(xml, resp);
+		PDFWriter pdf = new PDFWriter();
+		pdf.generate(xml, resp);
 	}
 }
