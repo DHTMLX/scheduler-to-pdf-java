@@ -98,7 +98,7 @@ public class PDFWriter {
 				if (view.compareTo("year") == 0) {
 					this.printYear();
 				} else {
-					if (view.compareTo("agenda") == 0) {
+					if (view.compareTo("agenda") == 0 || view.compareTo("map") == 0) {
 						this.printAgenda();
 					} else {
 						if (view.compareTo("timeline") == 0) {
