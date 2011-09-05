@@ -73,7 +73,7 @@ public class XMLParser {
 		return this.rows;
 	}
 
-		public void eventsParsing() {
+	public void eventsParsing() {
 		NodeList n1 = this.root.getElementsByTagName("event");
 		if ((n1 != null)&&(n1.getLength() > 0)) {
 			for (int i = 0; i < n1.getLength(); i++) {
@@ -156,7 +156,7 @@ public class XMLParser {
 		}
 		return cols;
 	}
-
+	
 	public String getMode() {
 		return this.mode;
 	}

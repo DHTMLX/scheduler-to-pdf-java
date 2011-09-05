@@ -37,6 +37,7 @@ public class PDFWriter {
 	private double weekEventHeaderHeight = 10;
 	private double agendaColOneWidth = 200;
 	private double multidayLineHeight = 14;
+	private double weekAgendaEventHeight = 20;
 
 	private String linePattern = "0";
 
@@ -47,6 +48,8 @@ public class PDFWriter {
 
 	private double monthDayWidth;
 	private double monthDayHeight;
+	private double contHeight;
+	private double contWidth;
 
 	private double weekDayWidth;
 	private double weekDayHeight;
@@ -104,7 +107,11 @@ public class PDFWriter {
 							if (view.compareTo("matrix") == 0) {
 								this.printMatrix();
 							} else {
-								this.printWeek();
+								if (view.compareTo("week_agenda") == 0) {
+									this.printWeekAgenda();
+								} else {
+									this.printWeek();
+								}
 							}
 						}
 					}
@@ -183,6 +190,22 @@ public class PDFWriter {
 		this.weekEventsDraw();
 		if (this.profile.compareTo("bw") == 0)
 			this.weekBwBordersDraw();
+	}
+
+	private void printWeekAgenda() throws Exception {
+		this.createPDF(Letter.PORTRAIT);
+		this.printHeader();
+		this.printFooter();
+		SchedulerEvent[] events = this.parser.getEvents();
+		while (events.length > 0) {
+			this.weekAgendaContainerDraw();
+			events = this.weekAgendaEventsDraw(events);
+			if (events.length > 0) {
+				this.page = new Page(this.pdf, Letter.PORTRAIT);
+				this.pages.add(this.page);
+				this.todayLabelDraw(this.page);
+			}
+		}
 	}
 
 	private void printWatermark() throws Exception {
@@ -1529,7 +1552,137 @@ public class PDFWriter {
 		}
 	}
 
+
+	private void weekAgendaContainerDraw() throws Exception {
+		String[] cols = this.parser.agendaColsParsing();
+		double x = this.offsetLeft;
+		double contWidth = (this.pageWidth)/2;
+		double contHeight = (this.pageHeight)/3;
+		this.contWidth = contWidth;
+		this.contHeight = contHeight;
+		
+		
+		for (int i = 0; i < 3; i++) {
+			double y = this.offsetTop + contHeight*i;
+			this.weekAgendarDayDraw(cols[i], contWidth, contHeight, x, y);
+		}
+		x += contWidth;
+		for (int i = 0; i < 2; i++) {
+			double y = this.offsetTop + contHeight*i;
+			this.weekAgendarDayDraw(cols[i + 3], contWidth, contHeight, x, y);
+		}
+		
+		double tallContHeight = contHeight/2;
+		for (int i = 0; i < 2; i++) {
+			double y = this.offsetTop + contHeight*2 + tallContHeight*i;
+			this.weekAgendarDayDraw(cols[i + 5], contWidth, tallContHeight, x, y);
+		}
+		double[] headerLineColor = RGBColor.getColor(this.headerLineColor);
+		for (int i = 0; i < 3; i++) {
+			double y = this.offsetTop + contHeight*i;
+			this.Line(headerLineColor, x, y, x, y + this.monthDayHeaderHeight);
+		}
+	}
+
+	private void weekAgendarDayDraw(String name, double width, double height, double x, double y) throws Exception {
+		double[] bgColor = RGBColor.getColor(this.bgColor);
+		double[] borderColor = RGBColor.getColor(this.lineColor);
+		double[] textColor = RGBColor.getColor(this.textColor);
+		Box day_cont = new Box();
+		day_cont.setSize(width, height);
+		day_cont.setPosition(x, y);
+		day_cont.setFillShape(false);
+		day_cont.setPattern(this.linePattern);
+		day_cont.setColor(bgColor);
+		day_cont.drawOn(this.page);
+
+		this.Line(borderColor, 0, 0, width, 0, day_cont);
+		this.Line(borderColor, 0, 0, 0, height, day_cont);
+		this.Line(borderColor, width, 0, width, height, day_cont);
+		this.Line(borderColor, 0, height, width, height, day_cont);
+
+		Box label_cont = new Box();
+		label_cont.setSize(width, this.monthDayHeaderHeight);
+		label_cont.setPosition(0, 0);
+		label_cont.setFillShape(true);
+		label_cont.setPattern(this.linePattern);
+		label_cont.setColor(bgColor);
+		label_cont.placeIn(day_cont, 0, 0);
+		label_cont.drawOn(this.page);
+
+		TextLine txt = new TextLine(this.f1, name);
+		x = this.cellOffset + (width - cellOffset - this.f1.stringWidth(name))/2;
+		y = (this.monthDayHeaderHeight + this.f1.getSize()) / 2;
+		txt.setPosition(x, y);
+		txt.placeIn(label_cont);
+		txt.setColor(textColor);
+		txt.drawOn(this.page);
+	}
+
+	private SchedulerEvent[] weekAgendaEventsDraw(SchedulerEvent[] events) throws Exception {
+		double[] borderColor = RGBColor.getColor(this.lineColor);
+		double[] textColor = RGBColor.getColor(this.textColor);
+		int[] offsets = new int[7];
+		for (int i = 0; i < offsets.length; i++)
+			offsets[i] = 0;
+		ArrayList<SchedulerEvent> rest = new ArrayList<SchedulerEvent>(); 
+
+		for (int i = 0; i < events.length; i++) {
+			SchedulerEvent event = events[i];
+			int day = event.getDay();
+			double cont_height = (day < 5) ? this.contHeight : this.contHeight/2;
+			double cont_width = this.contWidth;
+			double x;
+			switch (day) {
+				case 0:
+				case 2:
+				case 4:
+					x = this.offsetLeft;
+					break;
+				default:
+					x = this.offsetLeft + cont_width;
+					break;
+			}
+			double cont_start_y = this.offsetTop + Math.floor(day/2)*this.contHeight - (day > 5 ? cont_height : 0);
+			double offset = offsets[day]*this.weekAgendaEventHeight;
+			double y = cont_start_y + this.monthDayHeaderHeight+ offset;
+
+			if (cont_start_y + cont_height < y + this.weekAgendaEventHeight) {
+				rest.add(event);
+				continue;
+			}
+
+			Box ev = new Box();
+			ev.setSize(contWidth, this.weekAgendaEventHeight);
+			ev.setPosition(x, y);
+			ev.setFillShape(false);
+			ev.setPattern(this.linePattern);
+			ev.setColor(borderColor);
+			ev.drawOn(this.page);
+
+			this.f1.setSize(9);
+			String text = event.getText();
+			TextLine txt = new TextLine(this.f1, text);
+			x = this.cellOffset;
+			y = (this.weekAgendaEventHeight + this.f1.getSize()) / 2;
+			txt.setPosition(x, y);
+			txt.placeIn(ev);
+			txt.setColor(textColor);
+			txt.drawOn(this.page);
+			offsets[day]++;
+		}
+		SchedulerEvent[] events_list = new SchedulerEvent[rest.size()];
+		for (int i = 0; i < rest.size(); i++)
+			events_list[i] = rest.get(i);
+		return events_list;
+	}
+
 	private void todayLabelDraw() throws Exception {
+		Page p1 = this.pages.get(0);
+		this.todayLabelDraw(p1);
+	}
+
+	private void todayLabelDraw(Page p1) throws Exception {
 		this.f1.setSize(10);
 		double[] textColor = RGBColor.getColor(this.textColor);
 		String today = this.parser.getTodatLabel();
@@ -1538,10 +1691,9 @@ public class PDFWriter {
 		double today_y = this.offsetTop - this.cellOffset;
 		todayText.setPosition(today_x, today_y);
 		todayText.setColor(textColor);
-		Page p1 = this.pages.get(0);
 		todayText.drawOn(p1);
 	}
-
+	
 	private int getEventIndex(SchedulerEvent[] events, int day, int week,
 			int month) throws IOException {
 		for (int i = 0; i < events.length; i++) {
