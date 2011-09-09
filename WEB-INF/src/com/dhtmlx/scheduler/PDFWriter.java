@@ -27,7 +27,7 @@ public class PDFWriter {
 	private double headHeight = 20;
 	private double monthDayHeaderHeight = 20;
 	private double monthEventHeight = 12;
-	private double leftScaleWidth = 40;
+	private double leftScaleWidth = 80;
 	private double timelineLeft = 80;
 	private double monthEventOffsetLeft = 2;
 	private double monthEventOffsetTop = 2;
@@ -35,7 +35,7 @@ public class PDFWriter {
 	private double yearMonthOffsetTop = 10;
 	private double yearMonthLabelHeight = 20;
 	private double weekEventHeaderHeight = 10;
-	private double agendaColOneWidth = 200;
+	private double agendaColOneWidth = 150;
 	private double multidayLineHeight = 14;
 	private double weekAgendaEventHeight = 20;
 
@@ -1401,6 +1401,7 @@ public class PDFWriter {
 		sep.setEndPoint(date_width, this.headerHeight);
 		sep.placeIn(headerCont);
 
+		this.f1.setSize(7.4);
 		TextLine dateText = new TextLine(this.f1, cols[0]);
 		double date_text_x = (date_width - this.f1.stringWidth(dateText
 				.getText())) / 2;
@@ -1433,6 +1434,7 @@ public class PDFWriter {
 		double height = this.headerHeight;
 		double x = this.offsetLeft;
 		double y = this.offsetTop + this.headerHeight;
+		this.f1.setSize(7.4);
 		for (int i = 0; i < events.length; i++) {
 			if (y + height > this.offsetTop + this.pageHeight) {
 				Line borderBottom = new Line();
@@ -1588,6 +1590,7 @@ public class PDFWriter {
 		double[] bgColor = RGBColor.getColor(this.bgColor);
 		double[] borderColor = RGBColor.getColor(this.lineColor);
 		double[] textColor = RGBColor.getColor(this.textColor);
+		this.f1.setSize(9.4);
 		Box day_cont = new Box();
 		day_cont.setSize(width, height);
 		day_cont.setPosition(x, y);
