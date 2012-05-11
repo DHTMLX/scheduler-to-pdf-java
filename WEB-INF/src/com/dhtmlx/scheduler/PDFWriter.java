@@ -81,11 +81,13 @@ public class PDFWriter {
 	private String matrixEventColor = "FFFFFF";
 	private String view;
 	public String watermark = null;
+	private HttpServletResponse resp = null;
 
 	public void generate(String xml, HttpServletResponse resp)
 			throws IOException {
 		this.parser = new XMLParser();
 		this.headerHeight = this.headHeight;
+		this.resp = resp;
 
 		try {
 			this.parser.setXML(xml);
@@ -221,7 +223,7 @@ public class PDFWriter {
 	}
 	
 	private void createPDF(double[] orientation) throws Exception {
-		this.pdf = new PDF();
+		this.pdf = new PDF(this.resp.getOutputStream());
 
 		this.f1 = new Font(pdf, "Helvetica");
 		this.f1.setSize(10);
@@ -854,19 +856,21 @@ public class PDFWriter {
 				headerTxt.setColor(textColor);
 			}
 
-			this.f1.setSize(7.4);
-			TextLine bodyTxt = new TextLine(this.f1, this.textWrap(text, width
-					- 2 * this.cellOffset, this.f1));
 			double body_text_x = this.cellOffset;
-			double body_text_y = this.weekEventHeaderHeight
-					+ (this.weekEventHeaderHeight + this.f1.getSize()) / 2;
-			bodyTxt.placeIn(eventCont);
-			bodyTxt.setPosition(body_text_x, body_text_y);
-			if (color.compareTo("transparent") == 0) {
-				bodyTxt.setColor(textColor);
+			double body_text_y = this.weekEventHeaderHeight;
+			this.f1.setSize(7.4);
+			TextBox bodyTxt = new TextBox(f1, text, width - 2, height, 0, 1);
+			bodyTxt.setPosition(x + body_text_x, y + body_text_y);
+			bodyTxt.setDrawBackground(false);
+			bodyTxt.setNoBorders();
+			if ((color.compareTo("transparent") != 0)
+					&& ((this.profile.compareTo("fullcolor") == 0) || (this.profile
+							.compareTo("color") == 0))) {
+				bodyTxt.setFgColor(RGBColor.getColor(color));
 			} else {
-				bodyTxt.setColor(RGBColor.getColor(color));
+				bodyTxt.setFgColor(textColor);
 			}
+			bodyTxt.wrapText();
 
 			eventBg.drawOn(this.page);
 			eventCont.drawOn(this.page);
@@ -1711,9 +1715,8 @@ public class PDFWriter {
 	}
 
 	private void outputPDF(HttpServletResponse resp) throws Throwable {
-		this.pdf.wrap();
 		resp.setContentType("application/pdf");
-		this.pdf.getData().writeTo(resp.getOutputStream());
+		this.pdf.flush();
 	}
 
 	private String textWrap(String text, double width, Font f) {
