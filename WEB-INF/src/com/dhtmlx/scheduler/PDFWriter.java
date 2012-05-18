@@ -223,6 +223,7 @@ public class PDFWriter {
 	}
 	
 	private void createPDF(double[] orientation) throws Exception {
+		this.resp.setContentType("application/pdf");
 		this.pdf = new PDF(this.resp.getOutputStream());
 
 		this.f1 = new Font(pdf, "Helvetica");
