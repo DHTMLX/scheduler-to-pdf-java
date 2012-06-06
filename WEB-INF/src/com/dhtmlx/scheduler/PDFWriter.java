@@ -168,7 +168,7 @@ public class PDFWriter {
 		this.createPDF(Letter.LANDSCAPE);
 		this.printHeader();
 		this.printFooter();
-		this.weekHeaderDraw();
+		this.timelineHeaderDraw();
 		this.timelineContainerDraw();
 		this.timelineEventsDraw();
 	}
@@ -677,6 +677,8 @@ public class PDFWriter {
 		}
 	}
 
+	
+	
 	private void weekMultidayDraw() throws Exception {
 		double[] bgColor = RGBColor.getColor(this.multidayColor);
 		double[] borderColor = RGBColor.getColor(this.headerLineColor);
@@ -1059,10 +1061,12 @@ public class PDFWriter {
 		}
 
 		String[] cols = this.parser.weekColsParsing();
-		width = (this.pageWidth - this.leftScaleWidth) / cols.length;
+		SecondScale[] secondScale = this.parser.getSecondScale();
+		int len = secondScale.length>0 ? secondScale.length : cols.length;
+		width = (this.pageWidth - this.leftScaleWidth) / len;
 		x = this.offsetLeft + this.leftScaleWidth;
 		y = this.offsetTop + this.headerHeight;
-		for (int i = 0; i < cols.length; i++) {
+		for (int i = 0; i < len; i++) {
 			Line colBorderLeft = new Line();
 			colBorderLeft.setColor(borderColor);
 			colBorderLeft.setPattern(this.linePattern);
@@ -1176,6 +1180,114 @@ public class PDFWriter {
 		border.drawOn(this.page);
 	}
 
+
+	private void timelineHeaderDraw() throws Exception {
+		double[] bgColor = RGBColor.getColor(this.bgColor);
+		double[] borderColor = RGBColor.getColor(this.headerLineColor);
+		String[] cols = this.parser.weekColsParsing();
+		SecondScale[] secondScale = this.parser.getSecondScale();
+
+		double width = (this.pageWidth - this.leftScaleWidth) / (secondScale.length>0 ? secondScale.length : cols.length);
+		double height = this.headerHeight;
+		
+		double[] widths = new double[cols.length];
+		for (int i = 0; i < cols.length; i++)
+			widths[i]=0;
+
+		for (int i = 0; i < secondScale.length; i++) {
+			widths[secondScale[i].getColumn()-1] += width;
+		}
+		
+		this.weekDayWidth = width;
+		double x = this.offsetLeft + this.leftScaleWidth;
+		double y = this.offsetTop;
+		for (int i = 0; i < cols.length; i++) {
+			double w = secondScale.length > 0 ? widths[i] : width;
+			
+			Box cell = new Box();
+			cell.setSize(w, height);
+			cell.setColor(bgColor);
+			cell.setFillShape(true);
+			cell.setPosition(x, y);
+			cell.drawOn(this.page);
+
+			Line borderLeft = new Line();
+			borderLeft.setColor(borderColor);
+			borderLeft.setPattern(this.linePattern);
+			borderLeft.setStartPoint(0, 0);
+			borderLeft.setEndPoint(0, height);
+			borderLeft.placeIn(cell);
+
+			Line borderTop = new Line();
+			borderTop.setColor(borderColor);
+			borderTop.setPattern(this.linePattern);
+			borderTop.setStartPoint(0, 0);
+			borderTop.setEndPoint(w, 0);
+			borderTop.placeIn(cell);
+
+			borderLeft.drawOn(this.page);
+			borderTop.drawOn(this.page);
+
+			this.f1.setSize(7.4);
+			TextLine text = new TextLine(this.f1, this.textWrap(cols[i], w
+					- 2 * this.cellOffset, this.f1));
+			double text_x = (w - this.f1.stringWidth(text.getText())) / 2;
+			double text_y = (height + this.f1.getSize()) / 2;
+			text.setPosition(text_x, text_y);
+			text.placeIn(cell);
+			text.drawOn(this.page);
+
+			x += w;
+		}
+
+
+		if (secondScale.length > 0) {
+			this.weekDayWidth = width;
+			x = this.offsetLeft + this.leftScaleWidth;
+			y = this.offsetTop + height;
+			for (int i = 0; i < secondScale.length; i++) {
+				double w = width;
+
+				Box cell = new Box();
+				cell.setSize(w, height);
+				cell.setColor(bgColor);
+				cell.setFillShape(true);
+				cell.setPosition(x, y);
+				cell.drawOn(page);
+
+				Line borderLeft = new Line();
+				borderLeft.setColor(borderColor);
+				borderLeft.setPattern(this.linePattern);
+				borderLeft.setStartPoint(0, 0);
+				borderLeft.setEndPoint(0, height);
+				borderLeft.placeIn(cell);
+
+				Line borderTop = new Line();
+				borderTop.setColor(borderColor);
+				borderTop.setPattern(this.linePattern);
+				borderTop.setStartPoint(0, 0);
+				borderTop.setEndPoint(w, 0);
+				borderTop.placeIn(cell);
+
+				borderLeft.drawOn(this.page);
+				borderTop.drawOn(this.page);
+
+				this.f1.setSize(7.4);
+				TextLine text = new TextLine(this.f1, this.textWrap(secondScale[i].getLabel(), w
+						- 2 * this.cellOffset, this.f1));
+				double text_x = (w - this.f1.stringWidth(text.getText())) / 2;
+				double text_y = (height + this.f1.getSize()) / 2;
+				text.setPosition(text_x, text_y);
+				text.placeIn(cell);
+				text.drawOn(this.page);
+
+				x += w;
+			}
+			offsetTop += headerHeight;
+		}
+	}
+	
+	
 	private void timelineEventsDraw() throws Exception {
 		double[] eventBorderColor = RGBColor.getColor(this.eventBorderColor);
 		double[] eventColor = RGBColor.getColor(this.eventColor);

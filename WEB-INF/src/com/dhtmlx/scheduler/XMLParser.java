@@ -23,6 +23,7 @@ public class XMLParser {
 	private ArrayList<SchedulerEvent> multiday = new ArrayList<SchedulerEvent>();
 	private ArrayList<SchedulerEvent> events = new ArrayList<SchedulerEvent>();
 	private String[] cols = null;
+	private SecondScale[] secondScale = null;
 
 	public void setXML(String xml) throws DOMException, ParserConfigurationException, SAXException {
 		this.xml = xml;
@@ -95,7 +96,7 @@ public class XMLParser {
 			events_list[i] = events.get(i);
 		return events_list;
 	}
-	
+
 	public SchedulerEvent[] getMultidayEvents() {
 		SchedulerEvent[] events_list = new SchedulerEvent[multiday.size()];
 		for (int i = 0; i < multiday.size(); i++)
@@ -106,17 +107,20 @@ public class XMLParser {
 	public String[] weekColsParsing() {
 		if (cols != null)
 			return cols;
+		ArrayList<String> c = new ArrayList<String>();
 		NodeList n1 = this.root.getElementsByTagName("column");
 		if ((n1 != null)&&(n1.getLength() > 0)) {
 			cols = new String[n1.getLength()];
 			for (int i = 0; i < n1.getLength(); i++) {
+				if (n1.item(i).getAttributes().getNamedItem("second_scale")!=null) continue;
 				Element col = (Element) n1.item(i);
-				cols[i] = col.getChildNodes().item(0).getNodeValue();
+				c.add(col.getChildNodes().item(0).getNodeValue());
 			}
 		}
+		cols = toArray(c);
 		return cols;
 	}
-	
+
 	public String[] weekRowsParsing() {
 		String[] rows = null;
 		NodeList n1 = this.root.getElementsByTagName("row");
@@ -129,7 +133,34 @@ public class XMLParser {
 		}
 		return rows;
 	}
-	
+
+	protected String[] toArray(ArrayList<String> c) {
+		String[] cols = new String[c.size()];
+		for (int i = 0; i < c.size(); i++)
+			cols[i] = c.get(i);
+		return cols;
+	}
+
+	public SecondScale[] getSecondScale() {
+		if (secondScale!=null)
+			return secondScale;
+		ArrayList<SecondScale> c = new ArrayList<SecondScale>();
+		NodeList n1 = this.root.getElementsByTagName("column");
+		if ((n1 != null)&&(n1.getLength() > 0)) {
+			for (int i = 0; i < n1.getLength(); i++) {
+				if (n1.item(i).getAttributes().getNamedItem("second_scale")==null) continue;
+				Element col = (Element) n1.item(i);
+				SecondScale scale = new SecondScale(col.getChildNodes().item(0).getNodeValue(), Integer.parseInt(n1.item(i).getAttributes().getNamedItem("second_scale").getNodeValue()));
+				c.add(scale);
+			}
+		}
+		SecondScale[] secondScale = new SecondScale[c.size()];
+		for (int i = 0; i < c.size(); i++) {
+			secondScale[i] = c.get(i);
+		}
+		return secondScale;
+	}
+
 	public SchedulerMonth[] yearParsing() {
 		SchedulerMonth[] monthes = null;
 		NodeList n1 = this.root.getElementsByTagName("month");
@@ -143,7 +174,7 @@ public class XMLParser {
 		}
 		return monthes;
 	}
-	
+
 	public String[] agendaColsParsing() {
 		String[] cols = null;
 		NodeList n1 = this.root.getElementsByTagName("column");
@@ -156,7 +187,7 @@ public class XMLParser {
 		}
 		return cols;
 	}
-	
+
 	public String getMode() {
 		return this.mode;
 	}
@@ -164,11 +195,11 @@ public class XMLParser {
 	public String getTodatLabel() {
 		return this.todayLabel;
 	}
-	
+
 	public String getColorProfile() {
 		return this.profile;
 	}
-	
+
 	public boolean getHeader() {
 		boolean result = false;
 		if (this.header.compareTo("true") == 0) {
@@ -176,7 +207,7 @@ public class XMLParser {
 		}
 		return result;
 	}
-	
+
 	public boolean getFooter() {
 		boolean result = false;
 		if (this.footer.compareTo("true") == 0) {
