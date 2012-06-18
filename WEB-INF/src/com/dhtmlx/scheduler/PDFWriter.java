@@ -224,7 +224,7 @@ public class PDFWriter {
 	
 	private void createPDF(double[] orientation) throws Exception {
 		this.resp.setContentType("application/pdf");
-		this.pdf = new PDF(this.resp.getOutputStream());
+		this.pdf = new PDF(resp.getOutputStream());
 
 		this.f1 = new Font(pdf, "Helvetica");
 		this.f1.setSize(10);
@@ -449,7 +449,7 @@ public class PDFWriter {
 				events_grid[week][day]++;
 				int event_length = (int) Math.floor(width / this.monthDayWidth);
 				for (int j = 1; j <= event_length; j++) {
-					events_grid[week][day + j]++;
+					events_grid[week][day + j]=events_grid[week][day];
 				}
 			} else {
 				double cell_x = this.offsetLeft + day * this.monthDayWidth
