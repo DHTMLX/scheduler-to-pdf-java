@@ -39,7 +39,7 @@ public class PDFWriter {
 	private double multidayLineHeight = 14;
 	private double weekAgendaEventHeight = 20;
 
-	private String linePattern = "0";
+	private String linePattern = "[] 0";
 
 	private String pageNumTemplate = "Page {pageNum}/{allNum}";
 	private String pathToImgs = "d:/java/workspace/scheduler2pdf/imgs";
