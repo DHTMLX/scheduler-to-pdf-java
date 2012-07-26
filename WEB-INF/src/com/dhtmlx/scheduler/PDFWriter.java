@@ -4,12 +4,19 @@ import java.io.*;
 import java.util.ArrayList;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.w3c.dom.DOMException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import com.pdfjet.*;
+import org.w3c.dom.*;
 
 public class PDFWriter {
 	private XMLParser parser;
@@ -81,6 +88,7 @@ public class PDFWriter {
 	private String matrixEventColor = "FFFFFF";
 	private String view;
 	public String watermark = null;
+	private int view_page = 0;
 
 	public void generate(String xml, HttpServletResponse resp)
 			throws IOException {
@@ -88,37 +96,59 @@ public class PDFWriter {
 		this.headerHeight = this.headHeight;
 
 		try {
-			this.parser.setXML(xml);
-			this.profile = this.parser.getColorProfile();
-			this.setColorProfile(this.profile);
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance ();
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			Document dom = null;
+			dom = db.parse(new InputSource(new StringReader(xml)));
+			profile = dom.getDocumentElement().getAttribute("profile");
+			this.setColorProfile(profile);
+
+			createPDF();
+
+			Element root = dom.getDocumentElement();
+			NodeList p = root.getElementsByTagName("page");
+			if (p.getLength() == 0)
+				printPage(resp, root);
+			else
+				for (int i = 0; i < p.getLength(); i++)
+					printPage(resp, (Element) p.item(i));
+			outputPDF(resp);
+
+		}catch(SAXException se) {
+			se.printStackTrace();
+		}catch(IOException ioe) {
+			ioe.printStackTrace();
+		}catch (ParserConfigurationException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}catch (Throwable e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void printPage(HttpServletResponse resp, Element root) {
+		view_page = pages.size();
+		try {
+			this.parser.setXML(root);
 			view = this.parser.getMode();
-			if (view.compareToIgnoreCase("month") == 0) {
+
+			if (view.compareToIgnoreCase("month") == 0)
 				this.printMonth();
-			} else {
-				if (view.compareTo("year") == 0) {
-					this.printYear();
-				} else {
-					if (view.compareTo("agenda") == 0 || view.compareTo("map") == 0) {
-						this.printAgenda();
-					} else {
-						if (view.compareTo("timeline") == 0) {
-							this.printTimeline();
-						} else {
-							if (view.compareTo("matrix") == 0) {
-								this.printMatrix();
-							} else {
-								if (view.compareTo("week_agenda") == 0) {
-									this.printWeekAgenda();
-								} else {
-									this.printWeek();
-								}
-							}
-						}
-					}
-				}
-			}
+			else if (view.compareTo("year") == 0) 
+				this.printYear();
+			else if (view.compareTo("agenda") == 0 || view.compareTo("map") == 0)
+				this.printAgenda();
+			else if (view.compareTo("timeline") == 0)
+				this.printTimeline();
+			else if (view.compareTo("matrix") == 0)
+				this.printMatrix();
+			else if (view.compareTo("week_agenda") == 0)
+				this.printWeekAgenda();
+			else
+				this.printWeek();
+
 			this.todayLabelDraw();
-			this.outputPDF(resp);
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -134,9 +164,9 @@ public class PDFWriter {
 			e.printStackTrace();
 		}
 	}
-
+	
 	private void printMonth() throws Exception {
-		this.createPDF(Letter.LANDSCAPE);
+		this.configurePDF(Letter.LANDSCAPE);
 		this.printHeader();
 		this.printFooter();
 		this.monthHeaderDraw();
@@ -146,14 +176,14 @@ public class PDFWriter {
 	}
 
 	private void printYear() throws Exception {
-		this.createPDF(Letter.LANDSCAPE);
+		this.configurePDF(Letter.LANDSCAPE);
 		this.printHeader();
 		this.printFooter();
 		this.yearDraw();
 	}
 
 	private void printAgenda() throws Exception {
-		this.createPDF(Letter.PORTRAIT);
+		this.configurePDF(Letter.PORTRAIT);
 		this.printHeader();
 		this.printFooter();
 		this.agendaHeaderDraw();
@@ -163,7 +193,7 @@ public class PDFWriter {
 
 	private void printTimeline() throws Exception {
 		this.leftScaleWidth = this.timelineLeft;
-		this.createPDF(Letter.LANDSCAPE);
+		this.configurePDF(Letter.LANDSCAPE);
 		this.printHeader();
 		this.printFooter();
 		this.weekHeaderDraw();
@@ -173,7 +203,7 @@ public class PDFWriter {
 
 	private void printMatrix() throws Exception {
 		this.leftScaleWidth = this.timelineLeft;
-		this.createPDF(Letter.LANDSCAPE);
+		this.configurePDF(Letter.LANDSCAPE);
 		this.printHeader();
 		this.printFooter();
 		this.weekHeaderDraw();
@@ -181,7 +211,7 @@ public class PDFWriter {
 	}
 
 	private void printWeek() throws Exception {
-		this.createPDF(Letter.PORTRAIT);
+		this.configurePDF(Letter.PORTRAIT);
 		this.printHeader();
 		this.printFooter();
 		this.weekHeaderDraw();
@@ -193,7 +223,7 @@ public class PDFWriter {
 	}
 
 	private void printWeekAgenda() throws Exception {
-		this.createPDF(Letter.PORTRAIT);
+		this.configurePDF(Letter.PORTRAIT);
 		this.printHeader();
 		this.printFooter();
 		SchedulerEvent[] events = this.parser.getEvents();
@@ -220,18 +250,20 @@ public class PDFWriter {
 		text.drawOn(page);
 	}
 	
-	private void createPDF(double[] orientation) throws Exception {
-		this.pdf = new PDF();
+	private void createPDF() throws Exception {
+		pdf = new PDF();
+		f1 = new Font(pdf, "Helvetica");
+		f1.setSize(10);
+		pages = new ArrayList<Page>();
+	}
 
-		this.f1 = new Font(pdf, "Helvetica");
-		this.f1.setSize(10);
+	private void configurePDF(double[] orientation) throws Exception {
+		page = new Page(pdf, orientation);
+		pages.add(page);
 
-		this.pages = new ArrayList<Page>();
-		this.page = new Page(this.pdf, orientation);
-		this.pages.add(this.page);
 		double[] sizes = orientation;
-		this.pageWidth = sizes[0] - this.offsetLeft - this.offsetRight;
-		this.pageHeight = sizes[1] - this.offsetTop - this.offsetBottom;
+		pageWidth = sizes[0] - offsetLeft - offsetRight;
+		pageHeight = sizes[1] - offsetTop - offsetBottom;
 	}
 
 	private void monthHeaderDraw() throws Exception {
@@ -1681,7 +1713,7 @@ public class PDFWriter {
 	}
 
 	private void todayLabelDraw() throws Exception {
-		Page p1 = this.pages.get(0);
+		Page p1 = this.pages.get(view_page);
 		this.todayLabelDraw(p1);
 	}
 

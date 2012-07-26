@@ -1,18 +1,11 @@
 package com.dhtmlx.scheduler;
-import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayList;
-
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.*;
-import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 
 public class XMLParser {
-	private String xml;
 	private Element root;
 	private String mode;
 	private String todayLabel;
@@ -24,20 +17,10 @@ public class XMLParser {
 	private ArrayList<SchedulerEvent> events = new ArrayList<SchedulerEvent>();
 	private String[] cols = null;
 
-	public void setXML(String xml) throws DOMException, ParserConfigurationException, SAXException {
-		this.xml = xml;
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance ();
-		DocumentBuilder db = dbf.newDocumentBuilder();
-		Document dom = null;
-		try {
-			dom = db.parse(new InputSource(new StringReader(this.xml)));
-		}catch(SAXException se) {
-			se.printStackTrace();
-		}catch(IOException ioe) {
-			ioe.printStackTrace();
-		}
-		this.root = dom.getDocumentElement();
-		
+	public void setXML(Element root) throws DOMException, ParserConfigurationException, SAXException {
+		this.root = root;
+		cols = null;
+
 		NodeList n1 = this.root.getElementsByTagName("scale");
 		Element scale = (Element) n1.item(0);
 		this.mode = scale.getAttribute("mode");
@@ -59,7 +42,7 @@ public class XMLParser {
 		}
 		return this.cols;
 	}
-	
+
 	public String[][] monthRowsParsing() {
 		NodeList n1 = this.root.getElementsByTagName("row");
 		if ((n1 != null)&&(n1.getLength() > 0)) {
@@ -74,6 +57,8 @@ public class XMLParser {
 	}
 
 	public void eventsParsing() {
+		multiday.clear();
+		events.clear();
 		NodeList n1 = this.root.getElementsByTagName("event");
 		if ((n1 != null)&&(n1.getLength() > 0)) {
 			for (int i = 0; i < n1.getLength(); i++) {
@@ -164,11 +149,11 @@ public class XMLParser {
 	public String getTodatLabel() {
 		return this.todayLabel;
 	}
-	
+
 	public String getColorProfile() {
 		return this.profile;
 	}
-	
+
 	public boolean getHeader() {
 		boolean result = false;
 		if (this.header.compareTo("true") == 0) {
