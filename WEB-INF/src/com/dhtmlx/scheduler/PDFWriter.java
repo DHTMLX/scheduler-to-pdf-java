@@ -894,7 +894,7 @@ public class PDFWriter {
 			double body_text_x = this.cellOffset;
 			double body_text_y = this.weekEventHeaderHeight;
 			this.f1.setSize(7.4);
-			TextBox bodyTxt = new TextBox(f1, text, width - 2, height, 0, 1);
+			TextBox bodyTxt = new TextBox(f1, text, width - 2, height - this.weekEventHeaderHeight, 0, 1);
 			bodyTxt.setPosition(x + body_text_x, y + body_text_y);
 			bodyTxt.setDrawBackground(false);
 			bodyTxt.setNoBorders();
